@@ -1,1 +1,3 @@
 # GANs-Data-Diet
+
+A recent paper has shown that it is possible to train state-of-the-art machine learning models without having to consider every single sample within a dataset, but rather only a specific subset of samples. There are in fact data instances that are much more informative than others, and that therefore enhance generalization in neural networks. While these highly informative samples have been found when it comes to standard supervised learning tasks, the goal of this project is to investigate whether such samples also exist when dealing with generative models such as Generative Adversarial Neural Networks (GANs). The final goal of this project is therefore that of successfully training a GAN when only a subset of data is available for training.
