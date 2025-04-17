@@ -1,0 +1,128 @@
+import torch
+import torchvision
+import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, Subset
+import numpy as np
+import random
+
+def set_random_seed(seed):
+    """
+    Set random seed for reproducibility.
+    
+    Args:
+        seed (int): Random seed value
+    """
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+def load_data(batch_size, subset_percentage=100, dataset_type='digits'):
+    """
+    Load dataset with optional stratified subset selection.
+    
+    Args:
+        batch_size (int): Batch size for the data loader
+        subset_percentage (int): Percentage of data to use (1-100)
+        dataset_type (str): Type of dataset ('digits' for MNIST or 'fashion' for Fashion MNIST)
+        
+    Returns:
+        tuple: (DataLoader, Dataset) for the selected subset
+    """
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize([0.5], [0.5])  # Normalize to [-1, 1]
+    ])
+    
+    # Load the appropriate dataset based on dataset_type
+    if dataset_type.lower() == 'digits':
+        full_dataset = torchvision.datasets.MNIST(
+            root='./data',
+            train=True,
+            download=True,
+            transform=transform
+        )
+        class_names = [str(i) for i in range(10)]  # 0-9 digits
+    elif dataset_type.lower() == 'fashion':
+        full_dataset = torchvision.datasets.FashionMNIST(
+            root='./data',
+            train=True,
+            download=True,
+            transform=transform
+        )
+        class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
+                      'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+    else:
+        raise ValueError("dataset_type must be either 'digits' or 'fashion'")
+
+    # Get all targets as numpy array for easier processing
+    all_targets = full_dataset.targets.numpy() 
+
+    # Count distribution of digits in full dataset
+    digit_counts = [0] * 10
+    for label in all_targets:
+        digit_counts[label] += 1
+    
+    print(f"Full {dataset_type} dataset distribution:")
+    for class_idx, count in enumerate(digit_counts):
+        class_label = class_names[class_idx] if dataset_type.lower() == 'fashion' else f"Digit {class_idx}"
+        print(f"{class_label}: {count} samples")
+    
+    if subset_percentage == 100:
+        # Use the full dataset
+        selected_dataset = full_dataset
+    else:
+        # Create a stratified subset
+        digit_indices = [[] for _ in range(10)]
+        
+        # Group indices by digit
+        for idx, label in enumerate(all_targets):
+            digit_indices[label].append(idx)
+        
+        # Calculate total subset size and samples per digit
+        total_subset_size = int(len(full_dataset) * subset_percentage / 100)
+        samples_per_digit = total_subset_size // 10
+        
+        # Create stratified subset
+        stratified_indices = []
+        for digit in range(10):
+            digit_idx = digit_indices[digit]
+            random_idx = torch.randperm(len(digit_idx))
+            selected_idx = [digit_idx[i] for i in random_idx[:samples_per_digit]]
+            stratified_indices.extend(selected_idx)
+        
+        # Shuffle the indices
+        random.shuffle(stratified_indices)
+        
+        # Create the subset
+        selected_dataset = Subset(full_dataset, stratified_indices)
+        
+        # Count distribution of digits in subset
+        subset_digit_counts = [0] * 10
+        for idx in stratified_indices:
+            label = all_targets[idx]
+            subset_digit_counts[label] += 1
+        
+        print(f"\nStratified subset distribution ({dataset_type}):")
+        for class_idx, count in enumerate(subset_digit_counts):
+            class_label = class_names[class_idx] if dataset_type.lower() == 'fashion' else f"Digit {class_idx}"
+            print(f"{class_label}: {count} samples")
+    
+    # Create data loader
+    data_loader = DataLoader(
+        selected_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        drop_last=True,  # Discard incomplete batches
+        num_workers=4,   # Use multiple workers for faster loading
+        pin_memory=True  # Speed up data transfer to GPU
+    )
+    
+    print(f"\nFull dataset size: {len(full_dataset)} images")
+    print(f"Selected subset size: {len(selected_dataset)} images")
+    print(f"Number of batches: {len(data_loader)}")
+    
+    return data_loader, selected_dataset
