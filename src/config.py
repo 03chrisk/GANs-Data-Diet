@@ -29,6 +29,7 @@ DATASET_CLASSES = {
 GENERATED_IMAGES_PATH = "./generated_images"
 LOSS_PLOTS_PATH = "./loss_plots" 
 MODELS_PATH = "./saved_models"
+CLASSIFIER_PATH = MODELS_PATH + "/mnist_classifier"
 
 # Random seed
 RANDOM_SEED = 42

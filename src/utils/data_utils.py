@@ -20,7 +20,7 @@ def set_random_seed(seed):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-def load_data(batch_size, subset_percentage=100, dataset_type='digits'):
+def load_data(batch_size, subset_percentage=100, dataset_type='digits', train=True):
     """
     Load dataset with optional stratified subset selection.
     
@@ -41,7 +41,7 @@ def load_data(batch_size, subset_percentage=100, dataset_type='digits'):
     if dataset_type.lower() == 'digits':
         full_dataset = torchvision.datasets.MNIST(
             root='./data',
-            train=True,
+            train=train,
             download=True,
             transform=transform
         )
@@ -49,7 +49,7 @@ def load_data(batch_size, subset_percentage=100, dataset_type='digits'):
     elif dataset_type.lower() == 'fashion':
         full_dataset = torchvision.datasets.FashionMNIST(
             root='./data',
-            train=True,
+            train=train,
             download=True,
             transform=transform
         )
