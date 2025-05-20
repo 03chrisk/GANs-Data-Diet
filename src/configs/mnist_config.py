@@ -16,7 +16,6 @@ BETA2 = 0.999        # Adam optimizer beta2
 NUM_EPOCHS = 100     # Number of training epochs
 SAMPLE_INTERVAL = 10  # Save images every 10 epochs
 IMAGE_CHANNELS_MNIST = 1  # Number of channels in MNIST images
-IMAGE_CHANNELS_CIFAR10 = 3  # Number of channels in CIFAR-10 images
 
 
 DATASET_TYPE = 'digits'  # 'digits' for MNIST or 'fashion' for Fashion MNIST

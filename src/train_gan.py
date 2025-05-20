@@ -21,7 +21,7 @@ from utils.vizualization import (
     plot_losses
 )
 
-import config
+from configs import mnist_config as config
 
 
 def train_gan(subset_percentage=100, dataset_type='digits'):
