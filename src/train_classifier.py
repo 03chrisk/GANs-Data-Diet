@@ -10,7 +10,7 @@ from utils.data_utils import (
     load_data, 
 )
 
-from config import CLASSIFIER_PATH, BATCH_SIZE
+from configs.mnist_config import CLASSIFIER_PATH, BATCH_SIZE
 
 from tqdm import tqdm
 
