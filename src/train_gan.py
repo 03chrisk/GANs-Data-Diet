@@ -6,6 +6,10 @@ import torch.optim as optim
 
 from models.generator import Generator
 from models.discriminator import Discriminator
+from models.conv_generator import ConvGenerator
+from models.conv_discirminator import ConvDiscriminator
+
+from models.conv_discirminator import weights_init_normal
 
 from utils.data_utils import (
     set_random_seed, 
@@ -43,17 +47,37 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
         dataset_type=dataset_type
     )
     
-    # Initialize models
-    generator = Generator(
-        config.LATENT_DIM, 
-        config.HIDDEN_DIM, 
-        config.IMAGE_SIZE
-    ).to(config.DEVICE)
-    
-    discriminator = Discriminator(
-        config.IMAGE_SIZE, 
-        config.HIDDEN_DIM
-    ).to(config.DEVICE)
+    if dataset_type in ['digits', 'fashion']:
+        generator = Generator(
+            config.LATENT_DIM, 
+            config.HIDDEN_DIM, 
+            config.IMAGE_SIZE
+        ).to(config.DEVICE)
+        
+        discriminator = Discriminator(
+            config.IMAGE_SIZE, 
+            config.HIDDEN_DIM
+        ).to(config.DEVICE)
+    elif dataset_type == 'cifar10':
+        generator = ConvGenerator(
+            config.LATENT_DIM, 
+            config.HIDDEN_DIM, 
+            config.IMAGE_CHANNELS_CIFAR10
+        ).to(config.DEVICE)
+        
+        discriminator = ConvDiscriminator(
+            config.HIDDEN_DIM,
+            config.IMAGE_CHANNELS_CIFAR10
+        ).to(config.DEVICE)
+        
+        generator.main.apply(weights_init_normal)
+        discriminator.main.apply(weights_init_normal)
+    else:
+        raise ValueError(
+            f"Dataset type '{dataset_type}' is not supported. "
+            "Supported types: 'digits', 'fashion', 'cifar10'"
+        )
+        
     
     # Loss function
     adversarial_loss = nn.BCELoss()
@@ -89,6 +113,10 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
     )
     os.makedirs(checkpoint_dir, exist_ok=True)
     
+    # Create labels with a small amount of label smoothing for stability
+    valid = torch.ones(config.BATCH_SIZE, 1).to(config.DEVICE) * 0.9  # Real: 0.9 instead of 1
+    fake = torch.zeros(config.BATCH_SIZE, 1).to(config.DEVICE)
+    
     # Training loop
     for epoch in range(start_epoch, config.NUM_EPOCHS):
         epoch_start_time = time.time()
@@ -102,10 +130,6 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
             # Configure input
             real_imgs = real_imgs.to(config.DEVICE)
             batch_size = real_imgs.size(0)
-            
-            # Create labels with a small amount of label smoothing for stability
-            valid = torch.ones(batch_size, 1).to(config.DEVICE) * 0.9  # Real: 0.9 instead of 1
-            fake = torch.zeros(batch_size, 1).to(config.DEVICE) + 0.1  # Fake: 0.1 instead of 0
             
             # ---------------------
             # Train Discriminator
@@ -140,7 +164,7 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
             
             # Try to fool the discriminator
             validity = discriminator(fake_imgs)
-            g_loss = adversarial_loss(validity, valid)
+            g_loss = -torch.mean(torch.log(validity + 1e-8))
             
             g_loss.backward()
             optimizer_G.step()
@@ -150,12 +174,12 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
             d_loss_epoch += d_loss.item()
             
             # Print progress for a few batches
-            if i % 100 == 0:
-                elapsed = time.time() - start_time
-                print(f"[Epoch {epoch}/{config.NUM_EPOCHS}] "
-                      f"[Batch {i}/{len(train_loader)}] "
-                      f"[D loss: {d_loss.item():.4f}] [G loss: {g_loss.item():.4f}] "
-                      f"[Time: {elapsed:.2f}s]")
+            # if i % 100 == 0:
+            #     elapsed = time.time() - start_time
+            #     print(f"[Epoch {epoch}/{config.NUM_EPOCHS}] "
+            #           f"[Batch {i}/{len(train_loader)}] "
+            #           f"[D loss: {d_loss.item():.4f}] [G loss: {g_loss.item():.4f}] "
+            #           f"[Time: {elapsed:.2f}s]")
         
         # Calculate and store average losses for this epoch
         g_losses.append(g_loss_epoch / batch_count)
@@ -168,23 +192,23 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
               f"[Epoch time: {epoch_time:.2f}s]")
         
         # Only save checkpoints, generate images, and plot losses every 10 epochs or at the final epoch
-        if epoch % 10 == 0 or epoch == config.NUM_EPOCHS - 1:
-            # Save generated images
-            save_start = time.time()
-            _ = save_generated_images(
-                epoch, 
-                generator, 
-                config.LATENT_DIM, 
-                config.DEVICE, 
-                subset_percentage,
-                dataset_type,
-                fixed_noise,
-                config.GENERATED_IMAGES_PATH
-            )
-            print(f"Image saving took: {time.time() - save_start:.2f}s")
+        # if epoch % 10 == 0 or epoch == config.NUM_EPOCHS - 1:
+        #     # Save generated images
+        #     save_start = time.time()
+        #     _ = save_generated_images(
+        #         epoch, 
+        #         generator, 
+        #         config.LATENT_DIM, 
+        #         config.DEVICE, 
+        #         subset_percentage,
+        #         dataset_type,
+        #         fixed_noise,
+        #         config.GENERATED_IMAGES_PATH
+        #     )
+        #     print(f"Image saving took: {time.time() - save_start:.2f}s")
             
             # Plot losses
-            plot_losses(g_losses, d_losses, subset_percentage, dataset_type, config.LOSS_PLOTS_PATH)
+            #plot_losses(g_losses, d_losses, subset_percentage, dataset_type, config.LOSS_PLOTS_PATH)
     
     # Training summary
     training_time = (time.time() - start_time) / 60
@@ -197,10 +221,10 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
         f"{dataset_type}_subset_{subset_percentage}_percent"
     )
     
-    torch.save(generator.state_dict(), f'{final_model_path}/generator_final.pth')
-    torch.save(discriminator.state_dict(), f'{final_model_path}/discriminator_final.pth')
+    #torch.save(generator.state_dict(), f'{final_model_path}/generator_final.pth')
+    #torch.save(discriminator.state_dict(), f'{final_model_path}/discriminator_final.pth')
     
-    print("Final models saved!")
+    #print("Final models saved!")
     
     return g_losses, d_losses
 
@@ -211,7 +235,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Train MNIST GAN with different data subsets')
     parser.add_argument('--subset', type=int, default=100,
                         help='Percentage of data to use (default: 100)')
-    parser.add_argument('--dataset', type=str, default='digits', choices=['digits', 'fashion'],
+    parser.add_argument('--dataset', type=str, default='digits', choices=['digits', 'fashion', 'cifar10'],
                         help='Dataset to use: "digits" for MNIST or "fashion" for Fashion MNIST (default: digits)')
     
     args = parser.parse_args()

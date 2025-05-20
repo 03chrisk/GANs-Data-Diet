@@ -13,7 +13,11 @@ dependencies = [
     "scikit-learn>=1.6.1",
     "scipy>=1.15.2",
     "seaborn>=0.13.2",
+    "torchmetrics>=1.7.1",
     "tqdm>=4.67.1",
+    "torch>=2.5.1",
+    "torchvision>=0.16.1",
+    "torchaudio>=2.5.1"
 ]
 
 [dependency-groups]
@@ -23,3 +27,19 @@ dev = [
 
 [tool.uv.sources]
 gans-data-diet = { workspace = true }
+
+torch = [
+  { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+  { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchaudio = [
+  { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true

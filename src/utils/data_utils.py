@@ -32,13 +32,22 @@ def load_data(batch_size, subset_percentage=100, dataset_type='digits', train=Tr
     Returns:
         tuple: (DataLoader, Dataset) for the selected subset
     """
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize([0.5], [0.5])  # Normalize to [-1, 1]
-    ])
+    
+    dataset_type = dataset_type.lower()
+    
+    if dataset_type in ['digits', 'fashion']:
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.5], [0.5])
+        ])
+    elif dataset_type == 'cifar10':
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
     
     # Load the appropriate dataset based on dataset_type
-    if dataset_type.lower() == 'digits':
+    if dataset_type == 'digits':
         full_dataset = torchvision.datasets.MNIST(
             root='./data',
             train=train,
@@ -46,7 +55,7 @@ def load_data(batch_size, subset_percentage=100, dataset_type='digits', train=Tr
             transform=transform
         )
         class_names = [str(i) for i in range(10)]  # 0-9 digits
-    elif dataset_type.lower() == 'fashion':
+    elif dataset_type == 'fashion':
         full_dataset = torchvision.datasets.FashionMNIST(
             root='./data',
             train=train,
@@ -55,11 +64,20 @@ def load_data(batch_size, subset_percentage=100, dataset_type='digits', train=Tr
         )
         class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat',
                       'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
+    elif dataset_type == 'cifar10':
+        full_dataset = torchvision.datasets.CIFAR10(
+            root='./data',
+            train=train,
+            download=True,
+            transform=transform
+        )
+        class_names = ['plane', 'car', 'bird', 'cat', 'deer', 'dog',
+                       'frog', 'horse', 'ship', 'truck']
     else:
         raise ValueError("dataset_type must be either 'digits' or 'fashion'")
 
     # Get all targets as numpy array for easier processing
-    all_targets = full_dataset.targets.numpy() 
+    all_targets = np.array(full_dataset.targets)
 
     # Count distribution of digits in full dataset
     digit_counts = [0] * 10
@@ -118,7 +136,9 @@ def load_data(batch_size, subset_percentage=100, dataset_type='digits', train=Tr
         shuffle=True,
         drop_last=True,  # Discard incomplete batches
         num_workers=4,   # Use multiple workers for faster loading
-        pin_memory=True  # Speed up data transfer to GPU
+        pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=2 
     )
     
     print(f"\nFull dataset size: {len(full_dataset)} images")
