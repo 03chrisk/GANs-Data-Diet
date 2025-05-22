@@ -13,7 +13,7 @@ IMAGE_SIZE = 28 * 28  # MNIST image dimensions flattened
 LEARNING_RATE = 0.0002  # Learning rate
 BETA1 = 0.5          # Adam optimizer beta1
 BETA2 = 0.999        # Adam optimizer beta2
-NUM_EPOCHS = 100     # Number of training epochs
+NUM_EPOCHS = 10     # Number of training epochs
 SAMPLE_INTERVAL = 10  # Save images every 10 epochs
 IMAGE_CHANNELS_MNIST = 1  # Number of channels in MNIST images
 

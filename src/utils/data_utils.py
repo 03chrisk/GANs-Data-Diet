@@ -4,6 +4,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Subset
 import numpy as np
 import random
+import os
 
 def set_random_seed(seed):
     """
@@ -19,8 +20,51 @@ def set_random_seed(seed):
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
+        
+def load_data(batch_size, subset_percentage=100, dataset_type='digits', train=True, subset_strategy='random'):
+    if subset_strategy in ['easiest', 'hardest', 'easiest_balanced']:
+        return load_data_informed(batch_size, subset_percentage, dataset_type, subset_strategy)
+    elif subset_strategy == 'random':
+        return load_data_random(batch_size, subset_percentage, dataset_type, train)
+    else:
+        raise ValueError("subset_strategy must be either or 'easiest', 'hardest', 'easiest_balanced' 'random'")
 
-def load_data(batch_size, subset_percentage=100, dataset_type='digits', train=True):
+def load_data_informed(batch_size, subset_percentage=100, dataset_type='digits', subset_strategy='easy'):
+    
+    if subset_strategy == 'easiest':
+        data_path = f'src/data/easiest_subsets_{dataset_type}'
+        file_name = f"{dataset_type}_train_easiest_{subset_percentage}p.pt"
+        file_path = os.path.join(data_path, file_name)
+        print(f"Loading easiest subset from {file_path}")
+    elif subset_strategy == 'hardest':
+        data_path = f'src/data/hardest_subsets_{dataset_type}'
+        file_name = f"{dataset_type}_train_hardest_{subset_percentage}p.pt"
+        file_path = os.path.join(data_path, file_name)
+    elif subset_strategy == 'easiest_balanced':
+        data_path = f'src/data/easiest_balanced_subsets_{dataset_type}'
+        file_name = f"{dataset_type}_train_easiest_balanced_{subset_percentage}p.pt"
+        file_path = os.path.join(data_path, file_name)
+    
+    dataset = torch.load(file_path)
+    
+    data_loader = DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        drop_last=True,  # Discard incomplete batches
+        num_workers=4,   # Use multiple workers for faster loading
+        pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=2 
+    )
+    
+    print(f"\nLoaded dataset from {file_path}")
+    print(f"Selected subset size: {len(data_loader.dataset)} images")
+    print(f"Number of batches: {len(data_loader)}")
+    
+    return data_loader, dataset
+
+def load_data_random(batch_size, subset_percentage=100, dataset_type='digits', train=True):
     """
     Load dataset with optional stratified subset selection.
     

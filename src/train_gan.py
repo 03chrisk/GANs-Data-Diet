@@ -21,10 +21,9 @@ from utils.vizualization import (
     plot_losses
 )
 
-from configs import mnist_config as config
 
 
-def train_gan(subset_percentage=100, dataset_type='digits'):
+def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='random', config = None, save_path=None):
     """
     Train the GAN on the chosen dataset.
     
@@ -38,13 +37,14 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
     # Print device information just once at the start
     print(f"Using device: {config.DEVICE}")
     
-    set_random_seed(config.RANDOM_SEED)
+    #set_random_seed(config.RANDOM_SEED)
     
     # Load data
     train_loader, _ = load_data(
         batch_size=config.BATCH_SIZE, 
         subset_percentage=subset_percentage,
-        dataset_type=dataset_type
+        dataset_type=dataset_type,
+        subset_strategy=subset_strategy
     )
     
     if dataset_type in ['digits', 'fashion']:
@@ -226,7 +226,7 @@ def train_gan(subset_percentage=100, dataset_type='digits'):
     
     #print("Final models saved!")
     
-    return g_losses, d_losses
+    return g_losses, d_losses, generator
 
 
 if __name__ == "__main__":
