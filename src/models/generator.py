@@ -43,3 +43,11 @@ class Generator(nn.Module):
         img = self.model(z)
         img = img.view(img.size(0), 1, 28, 28)  # Reshape to image dimensions
         return img
+    
+def weights_init_fc(m):
+    """Weight initialization for fully connected layers"""
+    classname = m.__class__.__name__
+    if classname.find('Linear') != -1:
+        nn.init.xavier_normal_(m.weight.data)
+        if m.bias is not None:
+            nn.init.constant_(m.bias.data, 0)

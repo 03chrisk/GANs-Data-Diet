@@ -10,6 +10,7 @@ from models.conv_generator import ConvGenerator
 from models.conv_discirminator import ConvDiscriminator
 
 from models.conv_discirminator import weights_init_normal
+from models.generator import weights_init_fc
 
 from utils.data_utils import (
     set_random_seed, 
@@ -46,7 +47,7 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
         dataset_type=dataset_type,
         subset_strategy=subset_strategy
     )
-    
+
     if dataset_type in ['digits', 'fashion']:
         generator = Generator(
             config.LATENT_DIM, 
@@ -58,6 +59,8 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
             config.IMAGE_SIZE, 
             config.HIDDEN_DIM
         ).to(config.DEVICE)
+        generator.apply(weights_init_fc)
+        discriminator.apply(weights_init_fc)
     elif dataset_type == 'cifar10':
         generator = ConvGenerator(
             config.LATENT_DIM, 
@@ -191,8 +194,8 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
               f"[Avg D loss: {d_losses[-1]:.4f}] [Avg G loss: {g_losses[-1]:.4f}] "
               f"[Epoch time: {epoch_time:.2f}s]")
         
-        # Only save checkpoints, generate images, and plot losses every 10 epochs or at the final epoch
-        # if epoch % 10 == 0 or epoch == config.NUM_EPOCHS - 1:
+        #Only save checkpoints, generate images, and plot losses every 10 epochs or at the final epoch
+        # if epoch % 20 == 0 or epoch == config.NUM_EPOCHS - 1:
         #     # Save generated images
         #     save_start = time.time()
         #     _ = save_generated_images(

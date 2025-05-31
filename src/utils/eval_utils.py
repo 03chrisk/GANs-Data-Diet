@@ -20,7 +20,7 @@ def calculate_fid(generator, dataset_type, num_samples=50000):
         else:
             dataset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=mnist_transform)
             
-        fid = calculate_cnn_fid(generator, dataset, num_samples=num_samples, latent_dim=mnist_config.LATENT_DIM, device=mnist_config.DEVICE)
+        fid = calculate_cnn_fid(generator, dataset, num_samples=num_samples, latent_dim=mnist_config.LATENT_DIM, device=mnist_config.DEVICE, dataset_type=dataset_type)
     
     elif dataset_type == 'cifar10':
         cifar10_transform = transforms.Compose([
@@ -33,9 +33,16 @@ def calculate_fid(generator, dataset_type, num_samples=50000):
     
     return fid
 
-def calculate_cnn_fid(generator, dataset, num_samples=5000, latent_dim=mnist_config.LATENT_DIM, device='cuda'):
+def calculate_cnn_fid(generator, dataset, num_samples=5000, latent_dim=mnist_config.LATENT_DIM, device='cuda', dataset_type='digits'):
     feature_extractor = MNISTClassifier().to(device)
-    feature_extractor.load_state_dict(torch.load('src\models\mnist_classifier.pth', map_location=device))
+    if dataset_type == 'digits':
+        feature_extractor.load_state_dict(torch.load('src/models/digit_mnist_classifier.pth', map_location=device))
+        print("Using digit MNIST classifier for FID calculation.")
+    elif dataset_type == 'fashion':
+        feature_extractor.load_state_dict(torch.load('src/models/fashion_mnist_classifier.pth', map_location=device))
+        print("Using Fashion MNIST classifier for FID calculation.")
+    else:
+        raise ValueError("dataset_type must be either 'digits' or 'fashion'")
 
     dataloader = DataLoader(dataset, batch_size=num_samples, shuffle=True)
     

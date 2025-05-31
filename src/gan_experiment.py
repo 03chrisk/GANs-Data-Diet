@@ -112,7 +112,7 @@ class GANExperiment:
             fid_score = calculate_fid(
                 generator=generator,
                 dataset_type=self.dataset_type,
-                num_samples=10000,
+                num_samples=50000,
             )
             fid_time = time.time() - fid_start
             
