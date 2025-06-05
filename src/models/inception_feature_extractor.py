@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision import models
+import torch.nn.functional as F
 
 class InceptionV3FeatureExtractor(nn.Module):
     def __init__(self):
@@ -73,5 +74,28 @@ def preprocess_for_inception(images):
     
     if images.shape[2] != 299 or images.shape[3] != 299:
         images = torch.nn.functional.interpolate(images, size=(299, 299), mode='bilinear', align_corners=False)
+    
+    return images
+
+def preprocess_for_inception_imagenet(images):
+    """
+    Apply ImageNet preprocessing to images for Inception V3.
+    This matches the PRDC preprocessing exactly.
+    
+    Args:
+        images: Tensor of images, expected to be in range [-1, 1]
+        
+    Returns:
+        Preprocessed images ready for Inception V3
+    """
+    images = (images + 1.0) / 2.0
+    
+    mean = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1).to(images.device)
+    std = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1).to(images.device)
+    
+    images = (images - mean) / std
+    
+    if images.shape[2] != 299 or images.shape[3] != 299:
+        images = F.interpolate(images, size=(299, 299), mode='bilinear', align_corners=True)
     
     return images

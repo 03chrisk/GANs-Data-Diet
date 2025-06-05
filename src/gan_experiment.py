@@ -7,12 +7,11 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-# Import your modules
 from train_gan import train_gan
 from utils.data_utils import set_random_seed
 import configs.mnist_config as mnist_config
 import configs.cifar_config as cifar_config
-from utils.eval_utils import calculate_fid
+from utils.eval_utils import calculate_fid, calculate_pr
 
 
 class GANExperiment:
@@ -33,23 +32,17 @@ class GANExperiment:
         self.num_trials = num_trials
         self.base_seed = seed
         
-        # Select the appropriate config
         self.config = cifar_config if dataset_type == 'cifar10' else mnist_config
         
-        # Create timestamp for this experiment
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Create results directory
         self.results_dir = f"results/{dataset_type}_{subset_strategy}_{timestamp}"
         os.makedirs(self.results_dir, exist_ok=True)
         
-        # Results file path
         self.results_file = os.path.join(self.results_dir, "results.csv")
         
-        # Model save directory
         self.models_dir = f"models/{dataset_type}_{subset_strategy}"
         
-        # Initialize results list
         self.results = []
         
         print(f"Experiment initialized: {dataset_type}, {subset_strategy}")
@@ -63,7 +56,6 @@ class GANExperiment:
             List of percentage values
         """
         if self.subset_strategy == 'random':
-            # For random strategy, use standard percentages
             return [50, 60, 70, 80, 90, 100]
         else:
             return [50, 60, 70, 80, 90]
@@ -82,16 +74,13 @@ class GANExperiment:
         """
         print(f"\nTrial {trial}/{self.num_trials}")
         
-        # Set seed for reproducibility (different for each trial)
         trial_seed = self.base_seed + trial
         set_random_seed(trial_seed)
         print(f"Using seed: {trial_seed}")
         
-        # Define model save path
         model_save_path = os.path.join(self.models_dir, f"{percentage}p/trial_{trial}")
         os.makedirs(model_save_path, exist_ok=True)
         
-        # Start timing
         start_time = time.time()
         
         try:
@@ -116,6 +105,16 @@ class GANExperiment:
             )
             fid_time = time.time() - fid_start
             
+            # Calculate Precision and Recall
+            pr_start = time.time()
+            precision, recall = calculate_pr(
+                generator=generator,
+                dataset_type=self.dataset_type,
+                num_samples=10000,
+                k=5,
+            )
+            pr_time = time.time() - pr_start
+            
             # Record results
             result = {
                 'dataset': self.dataset_type,
@@ -123,12 +122,15 @@ class GANExperiment:
                 'percentage': percentage,
                 'trial': trial,
                 'fid_score': fid_score,
+                'precision': precision,
+                'recall': recall,
                 'train_time': train_time,
                 'fid_time': fid_time,
-                'total_time': train_time + fid_time
+                'pr_time': pr_time,
+                'total_time': train_time + fid_time + pr_time
             }
             
-            print(f"Trial {trial} complete. FID: {fid_score:.4f}")
+            print(f"Trial {trial} complete. FID: {fid_score:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
             
             return result
             
@@ -172,13 +174,10 @@ class GANExperiment:
             print(f"{'='*80}")
             
             for trial in range(1, self.num_trials + 1):
-                # Run the trial
                 result = self.run_trial(percentage, trial)
                 
-                # Add result to our collection
                 self.results.append(result)
                 
-                # Save after each trial in case of interruption
                 self.save_results()
         
         total_time = time.time() - total_start_time
@@ -209,10 +208,8 @@ def parse_arguments():
 
 
 if __name__ == "__main__":
-    # Parse command line arguments
     args = parse_arguments()
     
-    # Display configuration
     print("\nExperiment Configuration:")
     print(f"Dataset: {args.dataset}")
     print(f"Subset Strategy: {args.strategy}")
@@ -220,7 +217,6 @@ if __name__ == "__main__":
     print(f"Training Epochs: {mnist_config.NUM_EPOCHS}")
     print(f"Base Random Seed: {args.seed}")
     
-    # Create and run the experiment
     experiment = GANExperiment(
         dataset_type=args.dataset,
         subset_strategy=args.strategy,
@@ -228,7 +224,6 @@ if __name__ == "__main__":
         seed=args.seed
     )
     
-    # Run the experiment
     results = experiment.run()
     
     print("\nExperiment completed successfully!")

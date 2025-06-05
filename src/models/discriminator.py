@@ -5,7 +5,7 @@ class Discriminator(nn.Module):
     Discriminator network that evaluates whether an image is real or fake.
     
     The architecture consists of:
-    - Input: Flattened image (28×28 = 784 dimensions)
+    - Input: Flattened image (28x28 = 784 dimensions)
     - Multiple fully connected layers with LeakyReLU activations and dropout
     - Output: Single value between 0-1 (probability of image being real)
     """

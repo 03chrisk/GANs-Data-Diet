@@ -35,12 +35,10 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
     Returns:
         tuple: (g_losses, d_losses) - Lists of generator and discriminator losses
     """
-    # Print device information just once at the start
     print(f"Using device: {config.DEVICE}")
     
     #set_random_seed(config.RANDOM_SEED)
     
-    # Load data
     train_loader, _ = load_data(
         batch_size=config.BATCH_SIZE, 
         subset_percentage=subset_percentage,
@@ -94,7 +92,7 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
     
     optimizer_D = optim.Adam(
         discriminator.parameters(), 
-        lr=config.LEARNING_RATE, 
+        lr=config.LEARNING_RATE,
         betas=(config.BETA1, config.BETA2)
     )
     
@@ -109,7 +107,6 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
     start_time = time.time()
     print(f"Starting Training on {dataset_type.capitalize()} Dataset...")
     
-    # Create output directories
     checkpoint_dir = os.path.join(
         config.MODELS_PATH, 
         f"{dataset_type}_subset_{subset_percentage}_percent"
@@ -117,7 +114,7 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
     os.makedirs(checkpoint_dir, exist_ok=True)
     
     # Create labels with a small amount of label smoothing for stability
-    valid = torch.ones(config.BATCH_SIZE, 1).to(config.DEVICE) * 0.9  # Real: 0.9 instead of 1
+    valid = torch.ones(config.BATCH_SIZE, 1).to(config.DEVICE) * 0.9
     fake = torch.zeros(config.BATCH_SIZE, 1).to(config.DEVICE)
     
     # Training loop
@@ -172,7 +169,6 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
             g_loss.backward()
             optimizer_G.step()
             
-            # Save losses for plotting
             g_loss_epoch += g_loss.item()
             d_loss_epoch += d_loss.item()
             
@@ -195,30 +191,27 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
               f"[Epoch time: {epoch_time:.2f}s]")
         
         #Only save checkpoints, generate images, and plot losses every 10 epochs or at the final epoch
-        # if epoch % 20 == 0 or epoch == config.NUM_EPOCHS - 1:
-        #     # Save generated images
-        #     save_start = time.time()
-        #     _ = save_generated_images(
-        #         epoch, 
-        #         generator, 
-        #         config.LATENT_DIM, 
-        #         config.DEVICE, 
-        #         subset_percentage,
-        #         dataset_type,
-        #         fixed_noise,
-        #         config.GENERATED_IMAGES_PATH
-        #     )
-        #     print(f"Image saving took: {time.time() - save_start:.2f}s")
+        if epoch % 20 == 0 or epoch == config.NUM_EPOCHS - 1:
+            # Save generated images
+            save_start = time.time()
+            _ = save_generated_images(
+                epoch, 
+                generator, 
+                config.LATENT_DIM, 
+                config.DEVICE, 
+                subset_percentage,
+                dataset_type,
+                fixed_noise,
+                config.GENERATED_IMAGES_PATH
+            )
+            print(f"Image saving took: {time.time() - save_start:.2f}s")
             
-            # Plot losses
             #plot_losses(g_losses, d_losses, subset_percentage, dataset_type, config.LOSS_PLOTS_PATH)
     
-    # Training summary
     training_time = (time.time() - start_time) / 60
     print("Training finished!")
     print(f"Total training time: {training_time:.2f} minutes")
     
-    # Save final models
     final_model_path = os.path.join(
         config.MODELS_PATH, 
         f"{dataset_type}_subset_{subset_percentage}_percent"
