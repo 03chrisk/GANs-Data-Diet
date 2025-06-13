@@ -1,2 +1,0 @@
-dataset,strategy,percentage,trial,fid_score,precision,recall,train_time,fid_time,pr_time,total_time
-cifar10,easiest,50,1,22.80814,0.2559,0.2192,1360.2351512908936,275.17004656791687,319.6838321685791,1955.0890300273895

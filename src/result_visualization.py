@@ -38,6 +38,11 @@ def calculate_mean_sem_pr(results_df):
 # results_hardest = pd.read_csv('results/cifar10_hardest_20250524_231250/results.csv')
 # results_easiest_balanced = pd.read_csv('results/cifar10_easiest_balanced_20250527_000457/results.csv')
 
+results_random = pd.read_csv('results\cifar10_random_20250610_234707/results.csv')
+results_easiest = pd.read_csv('results\cifar10_easiest_20250611_103414/results.csv')
+results_hardest = pd.read_csv('results\cifar10_hardest_20250612_000201/results.csv')
+results_easiest_balanced = pd.read_csv('results\cifar10_easiest_balanced_20250611_171843/results.csv')
+
 #DIGITS results
 # results_random = pd.read_csv('results/digits_random_20250525_141958/results.csv')
 # results_easiest = pd.read_csv('results/digits_easiest_20250525_165555/results.csv')
@@ -55,10 +60,10 @@ def calculate_mean_sem_pr(results_df):
 # results_hardest = pd.read_csv('results/fashion_hardest_20250529_000648/results.csv')
 # results_easiest_balanced = pd.read_csv('results/fashion_easiest_balanced_20250527_223420/results.csv')
 
-results_random = pd.read_csv('results/fashion_random_20250604_155308/results.csv')
-results_easiest = pd.read_csv('results/fashion_easiest_20250604_195532/results.csv')
-results_hardest = pd.read_csv('results/fashion_hardest_20250604_213744/results.csv')
-results_easiest_balanced = pd.read_csv('results/fashion_easiest_balanced_20250604_181711/results.csv')
+# results_random = pd.read_csv('results/fashion_random_20250604_155308/results.csv')
+# results_easiest = pd.read_csv('results/fashion_easiest_20250604_195532/results.csv')
+# results_hardest = pd.read_csv('results/fashion_hardest_20250604_213744/results.csv')
+# results_easiest_balanced = pd.read_csv('results/fashion_easiest_balanced_20250604_181711/results.csv')
 
 # Calculate means and SEMs
 mean_random, sem_random = calculate_mean_sem_fid(results_random)
@@ -196,6 +201,79 @@ plt.fill_between([x_min, x_max],
 plt.xlabel('Subset Percentage (%)')
 plt.ylabel('Precision and Recall')
 plt.title('Precision and Recall for Different Subsets Across Experiments')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+
+
+plt.figure(figsize=(12, 8))
+
+for mean_p, sem_p, mean_r, sem_r, exp_key, exp_label in datasets:
+    color = experiment_colors[exp_key]
+    
+    if exp_key == 'random':
+        percentages = [p for p in mean_p.index if 50 <= p <= 90]
+    else:
+        percentages = list(mean_p.index)
+    
+    precision_values = [mean_p.loc[p] for p in percentages]
+    sem_precision_values = [sem_p.loc[p] for p in percentages]
+    
+    plt.errorbar(percentages, precision_values, yerr=sem_precision_values,
+                 marker='o', label=f'Precision: {exp_label}', color=color, linewidth=2, markersize=6, capsize=4)
+
+reference_precision = mean_random_p.loc[100]
+reference_sem_precision = sem_random_p.loc[100]
+
+plt.axhline(y=reference_precision, color='red', linestyle='--', 
+           label='Subset 100 Reference Precision', alpha=0.8)
+plt.fill_between([x_min, x_max], 
+                reference_precision - reference_sem_precision, 
+                reference_precision + reference_sem_precision, 
+                color='red', alpha=0.2, zorder=1)
+
+plt.xlabel('Subset Percentage (%)')
+plt.ylabel('Precision')
+plt.title('Precision for Different Subsets Across Experiments')
+plt.ylim(0.2, 0.35)
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+
+plt.figure(figsize=(12, 8))
+
+for mean_p, sem_p, mean_r, sem_r, exp_key, exp_label in datasets:
+    color = experiment_colors[exp_key]
+    
+    if exp_key == 'random':
+        percentages = [p for p in mean_r.index if 50 <= p <= 90]
+    else:
+        percentages = list(mean_r.index)
+    
+    recall_values = [mean_r.loc[p] for p in percentages]
+    sem_recall_values = [sem_r.loc[p] for p in percentages]
+    
+    plt.errorbar(percentages, recall_values, yerr=sem_recall_values,
+                 marker='o', label=f'Recall: {exp_label}', color=color, linewidth=2, markersize=6, capsize=4)
+
+reference_recall = mean_random_r.loc[100]
+reference_sem_recall = sem_random_r.loc[100]
+
+plt.axhline(y=reference_recall, color='blue', linestyle='--', 
+           label='Subset 100 Reference Recall', alpha=0.8)
+plt.fill_between([x_min, x_max], 
+                reference_recall - reference_sem_recall, 
+                reference_recall + reference_sem_recall, 
+                color='blue', alpha=0.2, zorder=1)
+
+plt.xlabel('Subset Percentage (%)')
+plt.ylabel('Recall')
+plt.title('Recall for Different Subsets Across Experiments')
+plt.ylim(0.2, 0.35)
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.tight_layout()

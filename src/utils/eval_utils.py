@@ -2,12 +2,14 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from models.inception_feature_extractor import InceptionV3FeatureExtractor, preprocess_for_inception, preprocess_for_inception_imagenet
-from models.cnn_classifier import MNISTClassifier, EnhancedMNISTFeatureExtractor
+from models.cnn_classifier import MNISTClassifier
 import numpy as np
 from scipy.linalg import sqrtm
 from torchvision import datasets, transforms
 import tqdm
 from sklearn.neighbors import NearestNeighbors
+from collections import defaultdict
+from torch.utils.data import Subset
 
 
 from configs import mnist_config, cifar_config
@@ -251,7 +253,7 @@ def extract_features_cnn(generator, feature_extractor, dataset, num_samples, lat
     """
     Extract features from real and generated images using CNN feature extractor.
     """
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=6)
     real_features = []
     
     print("Extracting features from real images...")
@@ -290,7 +292,21 @@ def extract_features_inception(generator, feature_extractor, dataset, num_sample
     """
     Extract features from real and generated images using Inception feature extractor.
     """
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=4)
+    
+    num_classes = 10  # CIFAR-10
+    if num_samples % num_classes != 0:
+        print(f"Warning: {num_samples} samples is not divisible by {num_classes} classes. "
+              f"Using {(num_samples // num_classes) * num_classes} samples total.")
+    
+    samples_per_class = num_samples // num_classes
+    total_samples = samples_per_class * num_classes
+    
+    print(f"Using stratified sampling: {samples_per_class} samples per class, {total_samples} total")
+    
+    # Create stratified subset
+    stratified_subset = create_stratified_subset(dataset, samples_per_class, num_classes)
+    
+    dataloader = DataLoader(stratified_subset, batch_size=batch_size, shuffle=True, num_workers=6)
     real_features = []
     
     print("Extracting features from real images...")
@@ -354,14 +370,14 @@ def compute_precision_recall(real_features, fake_features, k=3):
     
     # Fit k-NN on real features
     print("Fitting k-NN on real features...")
-    nbrs_real = NearestNeighbors(n_neighbors=k+1, metric='euclidean', n_jobs=4, algorithm='ball_tree').fit(real_features)
+    nbrs_real = NearestNeighbors(n_neighbors=k+1, metric='euclidean', n_jobs=6, algorithm='ball_tree').fit(real_features)
     distances_real, _ = nbrs_real.kneighbors(real_features)
     # Get distance to k-th nearest neighbor (excluding self)
     radii_real = distances_real[:, k]
     
     # Fit k-NN on fake features
     print("Fitting k-NN on fake features...")
-    nbrs_fake = NearestNeighbors(n_neighbors=k+1, metric='euclidean', n_jobs=4, algorithm='ball_tree').fit(fake_features)
+    nbrs_fake = NearestNeighbors(n_neighbors=k+1, metric='euclidean', n_jobs=6, algorithm='ball_tree').fit(fake_features)
     distances_fake, _ = nbrs_fake.kneighbors(fake_features)
     # Get distance to k-th nearest neighbor (excluding self)
     radii_fake = distances_fake[:, k]
@@ -413,3 +429,42 @@ def compute_manifold_coverage(query_features, reference_features, reference_radi
             
     coverage = n_covered / n_query
     return coverage
+
+
+def create_stratified_subset(dataset, num_samples_per_class, num_classes=10):
+    """
+    Create a stratified subset with equal samples per class.
+    
+    Args:
+        dataset: PyTorch dataset
+        num_samples_per_class: Number of samples to take from each class
+        num_classes: Total number of classes (10 for CIFAR-10)
+    
+    Returns:
+        Subset: Stratified subset of the dataset
+    """
+    # Group indices by class
+    class_indices = defaultdict(list)
+    
+    for idx, (_, label) in enumerate(dataset):
+        class_indices[label].append(idx)
+    
+    # Sample equal number from each class
+    selected_indices = []
+    for class_id in range(num_classes):
+        class_idx_list = class_indices[class_id]
+        
+        if len(class_idx_list) < num_samples_per_class:
+            print(f"Warning: Class {class_id} has only {len(class_idx_list)} samples, "
+                  f"but {num_samples_per_class} requested. Using all available.")
+            selected_indices.extend(class_idx_list)
+        else:
+            # Randomly sample without replacement
+            sampled_indices = np.random.choice(
+                class_idx_list, 
+                size=num_samples_per_class, 
+                replace=False
+            )
+            selected_indices.extend(sampled_indices.tolist())
+    
+    return Subset(dataset, selected_indices)

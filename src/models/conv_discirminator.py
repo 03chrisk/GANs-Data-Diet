@@ -29,7 +29,20 @@ class ConvDiscriminator(nn.Module):
 def weights_init_normal(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
+        # Handle spectral normalized layers
+        if hasattr(m, 'weight_orig'):
+            # For spectral normalized layers, initialize weight_orig
+            nn.init.normal_(m.weight_orig.data, 0.0, 0.02)
+        elif hasattr(m, 'weight'):
+            # For regular conv layers
+            nn.init.normal_(m.weight.data, 0.0, 0.02)
+        
+        # Only initialize bias if it exists
+        if hasattr(m, 'bias') and m.bias is not None:
+            nn.init.constant_(m.bias.data, 0)
+            
     elif classname.find('BatchNorm') != -1:
-        nn.init.normal_(m.weight.data, 1.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
+        if hasattr(m, 'weight') and m.weight is not None:
+            nn.init.normal_(m.weight.data, 1.0, 0.02)
+        if hasattr(m, 'bias') and m.bias is not None:
+            nn.init.constant_(m.bias.data, 0)

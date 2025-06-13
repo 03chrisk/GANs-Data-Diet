@@ -71,8 +71,8 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
             config.IMAGE_CHANNELS_CIFAR10
         ).to(config.DEVICE)
         
-        generator.main.apply(weights_init_normal)
-        discriminator.main.apply(weights_init_normal)
+        generator.apply(weights_init_normal)
+        discriminator.apply(weights_init_normal)
     else:
         raise ValueError(
             f"Dataset type '{dataset_type}' is not supported. "
@@ -102,7 +102,7 @@ def train_gan(subset_percentage=100, dataset_type='digits', subset_strategy='ran
     d_losses = []
     
     # Generate fixed noise for consistent image generation
-    fixed_noise = torch.randn(25, config.LATENT_DIM).to(config.DEVICE)
+    fixed_noise = torch.randn(64, config.LATENT_DIM).to(config.DEVICE)
     
     start_time = time.time()
     print(f"Starting Training on {dataset_type.capitalize()} Dataset...")

@@ -37,7 +37,7 @@ class GANExperiment:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
         self.results_dir = f"results/{dataset_type}_{subset_strategy}_{timestamp}"
-        os.makedirs(self.results_dir, exist_ok=True)
+        #os.makedirs(self.results_dir, exist_ok=True)
         
         self.results_file = os.path.join(self.results_dir, "results.csv")
         
@@ -178,7 +178,7 @@ class GANExperiment:
                 
                 self.results.append(result)
                 
-                self.save_results()
+                #self.save_results()
         
         total_time = time.time() - total_start_time
         print(f"\nExperiment complete. Total time: {total_time/60:.2f} minutes")

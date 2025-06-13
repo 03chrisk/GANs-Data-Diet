@@ -44,7 +44,7 @@ def save_generated_images(epoch, generator, latent_dim, device, subset_percentag
     gen_imgs = 0.5 * gen_imgs + 0.5
 
     # Create image grid
-    grid = make_grid(gen_imgs, nrow=5, normalize=True)
+    grid = make_grid(gen_imgs, nrow=8, normalize=True)
     
     # Save image
     filename = f"epoch_{epoch:03d}.png"
